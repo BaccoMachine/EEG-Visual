@@ -1,2 +1,10 @@
+.DS_Store
+venv/
 env/
+gatto.png
+__pycache__/
+*.pyc
 data/
+output_grafici/
+prove esperimento 3-4/
+prove esperimento 5-6/
