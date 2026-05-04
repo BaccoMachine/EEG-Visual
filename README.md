@@ -21,27 +21,16 @@ pip install fastapi uvicorn pypdf python-multipart
 
 ## EEG Analysis (`data_processing.py`)
 
-Pipeline for processing raw BrainFlow CSV recordings from the Cyton+Daisy (16 channels, 125 Hz).
+Processes raw BrainFlow CSVs from Cyton+Daisy (16ch, 125 Hz).
 
-**What it does:**
+Splits recordings into experiments using the Marker Channel, then generates three plots per experiment:
 
-1. **Segmentation** — reads all CSVs in `data/`, splits each recording into experiments using the Marker Channel (marker `1` = start, any other marker = end of section)
-2. **Spectrogram per channel** — for each experiment, generates a 16-panel spectrogram (1–40 Hz, Viridis colormap) with EEG band labels (δ θ α β γ) and marker timestamps overlaid
-3. **Average spectrogram** — mean power across all 16 channels in a single plot, same band/marker annotations
-4. **Welch PSD per section** — splits each experiment at marker boundaries and plots the average Welch PSD (1–40 Hz) for each section on the same axes
+- **16ch detail** — spectrogram for each channel (1–40 Hz), with band labels and marker lines
+- **avg** — same but averaged across all 16 channels
+- **welch** — Welch PSD split by marker section, all on one plot
 
-**Output:** PNG files saved to `output_grafici/`
-
-```
-Exp_01_Dettaglio_16_canali.png   # per-channel spectrogram
-Exp_01_Media_Globale.png         # cross-channel mean spectrogram
-Exp_01_Welch_Sezioni.png         # Welch PSD by marker section
-```
-
-**Run:**
+Output goes to `output_grafici/`. Put BrainFlow CSVs in `data/` and run:
 
 ```bash
 python3 data_processing.py
 ```
-
-Place BrainFlow CSV files in `data/` before running.
