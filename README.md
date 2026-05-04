@@ -29,7 +29,7 @@ Splits recordings into experiments using the Marker Channel, then generates thre
 - **avg** — same but averaged across all 16 channels
 - **welch** — Welch PSD split by marker section, all on one plot
 
-Output goes to `output_grafici/`. Put BrainFlow CSVs in `data/` and run:
+Output goes to `output/`. Put BrainFlow CSVs in `data/` and run:
 
 ```bash
 python3 data_processing.py

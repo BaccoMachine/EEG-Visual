@@ -236,7 +236,7 @@ def export_welch_per_sezione(sgms, outdir, fs_hardware=125.0):
 
 if __name__ == "__main__":
     datadir = Path('data')
-    outdir = Path('output_grafici')
+    outdir = Path('output')
     outdir.mkdir(exist_ok=True)
     
     print("Reading CSVs and segmenting experiments...")

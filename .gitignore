@@ -4,6 +4,6 @@ env/
 __pycache__/
 *.pyc
 data/
-output_grafici/
+output/
 prove esperimento 3-4/
 prove esperimento 5-6/
