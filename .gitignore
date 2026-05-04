@@ -1,7 +1,6 @@
 .DS_Store
 venv/
 env/
-gatto.png
 __pycache__/
 *.pyc
 data/
