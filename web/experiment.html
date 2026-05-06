@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>experiment runner</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: monospace; max-width: 600px; margin: 30px auto; padding: 0 20px; background: #111; color: #eee; }
+  h1 { font-size: 1.1em; color: #888; margin-bottom: 4px; }
+  label { display: block; margin: 14px 0 4px; color: #888; font-size: 0.8em; text-transform: uppercase; }
+  input[type=text] { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: 8px; width: 100%; }
+  input[type=file] { color: #aaa; }
+  video { width: 100%; background: #000; margin: 12px 0; display: none; }
+  #start { background: #162916; border: 1px solid #2d5a2d; color: #eee; padding: 14px; font-size: 1.1em; cursor: pointer; width: 100%; margin: 14px 0; }
+  #start:disabled { opacity: 0.3; cursor: default; }
+  #log { font-size: 0.82em; margin-top: 12px; }
+  .ok  { color: #4a4; }
+  .err { color: #a44; }
+  .inf { color: #888; }
+  #dl { background: #222; border: 1px solid #444; color: #eee; padding: 8px 18px; cursor: pointer; display: none; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h1>experiment runner</h1>
+
+<label>IP del PC (es. http://192.168.1.10:5000)</label>
+<input type="text" id="url" placeholder="http://192.168.1.X:5000">
+
+<label>markers.json</label>
+<input type="file" id="mfile" accept=".json">
+
+<label>video</label>
+<input type="file" id="vfile" accept="video/*">
+<video id="video"></video>
+
+<button id="start" disabled onclick="run()">▶ START ESPERIMENTO</button>
+<div id="log"></div>
+<button id="dl" onclick="downloadLog()">↓ scarica log sessione</button>
+
+<script>
+const video    = document.getElementById('video')
+const startBtn = document.getElementById('start')
+const urlInput = document.getElementById('url')
+const logDiv   = document.getElementById('log')
+
+let markers    = []
+let sessionLog = []
+let timers     = []
+
+urlInput.value   = localStorage.getItem('srv') || ''
+urlInput.oninput = () => localStorage.setItem('srv', urlInput.value)
+
+document.getElementById('mfile').onchange = e => {
+  const r = new FileReader()
+  r.onload = ev => {
+    markers = JSON.parse(ev.target.result)
+    addLog(`${markers.length} marker caricati`, 'inf')
+    checkReady()
+  }
+  r.readAsText(e.target.files[0])
+}
+
+document.getElementById('vfile').onchange = e => {
+  video.src = URL.createObjectURL(e.target.files[0])
+  video.style.display = 'block'
+  checkReady()
+}
+
+function checkReady() {
+  startBtn.disabled = !(markers.length && video.src && urlInput.value.trim())
+}
+
+async function sendMarker(value, label) {
+  const ts = Date.now()
+  sessionLog.push({ label, value, unix_ms: ts })
+  const url = urlInput.value.replace(/\/$/, '')
+  try {
+    await fetch(`${url}/marker`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value })
+    })
+    addLog(`✓ ${label} (${value})`, 'ok')
+  } catch {
+    addLog(`⚠ ${label} — WiFi fallito, salvato in locale`, 'err')
+  }
+}
+
+async function run() {
+  timers.forEach(clearTimeout)
+  timers     = []
+  sessionLog = []
+  logDiv.innerHTML = ''
+  startBtn.disabled = true
+  document.getElementById('dl').style.display = 'none'
+
+  await sendMarker(0, 'video_start')
+
+  video.currentTime = 0
+  video.play()
+
+  for (const m of markers) {
+    const t = setTimeout(() => sendMarker(m.value, m.label), m.offset_ms)
+    timers.push(t)
+  }
+
+  video.onended = async () => {
+    await sendMarker(99, 'video_end')
+    document.getElementById('dl').style.display = 'inline-block'
+    startBtn.disabled = false
+  }
+}
+
+function addLog(msg, cls = '') {
+  const d = document.createElement('div')
+  d.className = cls
+  d.textContent = msg
+  logDiv.prepend(d)
+}
+
+function downloadLog() {
+  const rows = ['label,value,unix_ms', ...sessionLog.map(e => `${e.label},${e.value},${e.unix_ms}`)]
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' })
+  const a    = document.createElement('a')
+  a.href     = URL.createObjectURL(blob)
+  a.download = `session_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`
+  a.click()
+}
+</script>
+</body>
+</html>

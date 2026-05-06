@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>marker definer</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: monospace; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #111; color: #eee; }
+  h1 { font-size: 1.1em; color: #888; margin-bottom: 4px; }
+  p  { color: #666; font-size: 0.85em; margin: 4px 0 16px; }
+  video { width: 100%; background: #000; margin: 12px 0; }
+  .row { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid #222; }
+  .row span { color: #888; min-width: 40px; }
+  .row input { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: 4px 8px; width: 140px; }
+  .row .t { color: #5af; min-width: 80px; }
+  .del { background: none; border: none; color: #633; cursor: pointer; font-size: 1.1em; }
+  .del:hover { color: #f55; }
+  .btn { background: #222; border: 1px solid #444; color: #eee; padding: 8px 18px; cursor: pointer; margin: 8px 8px 0 0; }
+  .btn:hover { background: #333; }
+  #export { background: #162916; border-color: #2d5a2d; }
+  #hint { color: #555; font-size: 0.8em; margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<h1>marker definer</h1>
+<p>guarda il video, premi <strong>spazio</strong> ad ogni cambio scena</p>
+
+<input type="file" id="vfile" accept="video/*">
+<video id="video" controls></video>
+<div id="hint">nessun file caricato</div>
+<div id="list"></div>
+<br>
+<button class="btn" onclick="undo()">↩ undo</button>
+<button class="btn" id="export" onclick="exportJson()">↓ export markers.json</button>
+
+<script>
+const video = document.getElementById('video')
+const hint  = document.getElementById('hint')
+let markers = []
+
+document.getElementById('vfile').onchange = e => {
+  video.src = URL.createObjectURL(e.target.files[0])
+  hint.textContent = 'premi spazio durante la riproduzione per aggiungere marker'
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || !video.src) return
+  e.preventDefault()
+  const n = markers.length + 1
+  markers.push({ value: n, label: `M${n}`, offset_ms: Math.round(video.currentTime * 1000) })
+  render()
+})
+
+function undo() {
+  markers.pop()
+  render()
+}
+
+function render() {
+  document.getElementById('list').innerHTML = markers.map((m, i) => `
+    <div class="row">
+      <span>${String(i + 1).padStart(2, '0')}</span>
+      <span class="t">${(m.offset_ms / 1000).toFixed(3)}s</span>
+      <input value="${m.label}" oninput="markers[${i}].label = this.value">
+      <button class="del" onclick="markers.splice(${i},1); render()">✕</button>
+    </div>
+  `).join('')
+  hint.textContent = markers.length ? `${markers.length} marker` : 'premi spazio per aggiungere marker'
+}
+
+function exportJson() {
+  if (!markers.length) return alert('nessun marker')
+  const blob = new Blob([JSON.stringify(markers, null, 2)], { type: 'application/json' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = 'markers.json'
+  a.click()
+}
+</script>
+</body>
+</html>
