@@ -3,14 +3,14 @@ import socket
 
 # --- config ---
 GUI_IP      = '127.0.0.1'
-GUI_PORT    = 12345   # OpenBCI GUI Marker Widget → UDP port (configurabile nel widget)
-SERVER_PORT = 5000
+GUI_PORT    = 5100   # OpenBCI GUI marker UDP listener (porta fissa)
+SERVER_PORT = 9000
 
 app = Flask(__name__)
 
 def send_udp(value: float):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(str(value).encode(), (GUI_IP, GUI_PORT))
+    sock.sendto(bytes([int(value) & 0xFF]), (GUI_IP, GUI_PORT))
     sock.close()
 
 @app.after_request

@@ -5,76 +5,475 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>experiment runner</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: monospace; max-width: 600px; margin: 30px auto; padding: 0 20px; background: #111; color: #eee; }
-  h1 { font-size: 1.1em; color: #888; margin-bottom: 4px; }
-  label { display: block; margin: 14px 0 4px; color: #888; font-size: 0.8em; text-transform: uppercase; }
-  input[type=text] { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: 8px; width: 100%; }
-  input[type=file] { color: #aaa; }
-  video { width: 100%; background: #000; margin: 12px 0; display: none; }
-  #start { background: #162916; border: 1px solid #2d5a2d; color: #eee; padding: 14px; font-size: 1.1em; cursor: pointer; width: 100%; margin: 14px 0; }
-  #start:disabled { opacity: 0.3; cursor: default; }
-  #log { font-size: 0.82em; margin-top: 12px; }
-  .ok  { color: #4a4; }
-  .err { color: #a44; }
-  .inf { color: #888; }
-  #dl { background: #222; border: 1px solid #444; color: #eee; padding: 8px 18px; cursor: pointer; display: none; margin-top: 12px; }
+* { box-sizing: border-box; }
+body { font-family: monospace; max-width: 760px; margin: 30px auto; padding: 0 20px 60px; background: #111; color: #eee; }
+h1 { font-size: 1.1em; color: #888; margin-bottom: 4px; }
+h2 { font-size: 0.85em; color: #666; text-transform: uppercase; margin: 24px 0 8px; border-bottom: 1px solid #222; padding-bottom: 4px; }
+label { display: block; margin: 8px 0 3px; color: #888; font-size: 0.75em; text-transform: uppercase; }
+input[type=text], input[type=number], select { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: 6px; font-family: monospace; font-size: 0.9em; }
+input[type=text] { width: 100%; }
+input[type=number] { width: 90px; }
+input[type=file] { color: #aaa; font-size: 0.85em; }
+
+.section {
+  background: #181818;
+  border: 1px solid #2a2a2a;
+  border-left: 3px solid #444;
+  padding: 12px 14px;
+  margin: 10px 0;
+  position: relative;
+}
+.section.phase { border-left-color: #2d5a8a; }
+.section.video { border-left-color: #2d8a5a; }
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.section-type {
+  font-size: 0.75em;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #222;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+.section.phase .section-type { color: #6ab; }
+.section.video .section-type { color: #6b9; }
+.section-actions { display: flex; gap: 4px; }
+.btn-icon {
+  background: #222; border: 1px solid #333; color: #aaa;
+  padding: 4px 9px; cursor: pointer; font-family: monospace; font-size: 0.85em;
+}
+.btn-icon:hover { background: #2a2a2a; color: #fff; }
+.btn-del { color: #c66; border-color: #5a2d2d; background: #2a1111; }
+.btn-del:hover { background: #3a1818; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.row > div { display: flex; flex-direction: column; }
+
+.markers-tbl { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 0.85em; }
+.markers-tbl th { text-align: left; color: #555; font-weight: normal; padding: 3px 6px; font-size: 0.8em; text-transform: uppercase; }
+.markers-tbl td { padding: 3px 4px; }
+.markers-tbl input { padding: 4px 5px; }
+
+.btn-add-sec { background: #1a1a1a; border: 1px dashed #333; color: #888; padding: 8px 18px; cursor: pointer; font-family: monospace; margin: 4px 6px 4px 0; }
+.btn-add-sec:hover { color: #fff; border-color: #555; }
+.btn-add-marker { background: #162916; border: 1px solid #2d5a2d; color: #cfc; padding: 4px 10px; cursor: pointer; font-family: monospace; font-size: 0.85em; }
+.btn-add-marker:hover { background: #1d3a1d; }
+
+.vid-preview { width: 100%; max-height: 280px; background: #000; margin: 6px 0; display: block; }
+.vid-time { font-size: 0.85em; color: #888; margin: 4px 0; }
+
+#start { background: #162916; border: 1px solid #2d5a2d; color: #eee; padding: 14px; font-size: 1.05em; cursor: pointer; width: 100%; margin: 22px 0 6px; font-family: monospace; }
+#start:disabled { opacity: 0.3; cursor: default; }
+#log { font-size: 0.82em; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+.ok  { color: #4a4; }
+.err { color: #a44; }
+.inf { color: #888; }
+#dl { background: #222; border: 1px solid #444; color: #eee; padding: 8px 18px; cursor: pointer; display: none; margin-top: 10px; font-family: monospace; }
+
+#overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+#overlay.active { display: flex; }
+#ov-text { font-size: 3em; font-weight: bold; font-family: monospace; text-align: center; padding: 0 20px; }
+#ov-cross { font-size: 12em; line-height: 1; }
+#ov-count { font-size: 1.1em; margin-top: 24px; opacity: 0.4; font-family: monospace; }
+#ov-video { max-width: 100%; max-height: 100vh; }
+#ov-esc { position: fixed; top: 10px; right: 14px; font-size: 0.7em; opacity: 0.3; font-family: monospace; }
 </style>
 </head>
 <body>
 
 <h1>experiment runner</h1>
 
-<label>IP del PC (es. http://192.168.1.10:5000)</label>
-<input type="text" id="url" placeholder="http://192.168.1.X:5000">
+<label>IP sync server (es. http://192.168.1.84:9000)</label>
+<input type="text" id="url" placeholder="http://192.168.1.X:9000">
 
-<label>markers.json</label>
-<input type="file" id="mfile" accept=".json">
+<h2>sezioni esperimento</h2>
+<div id="sections"></div>
+<div>
+  <button class="btn-add-sec" onclick="addSection('phase')">+ fase</button>
+  <button class="btn-add-sec" onclick="addSection('video')">+ video</button>
+</div>
 
-<label>video</label>
-<input type="file" id="vfile" accept="video/*">
-<video id="video"></video>
-
-<button id="start" disabled onclick="run()">▶ START ESPERIMENTO</button>
+<button id="start" onclick="run()">▶ START ESPERIMENTO</button>
 <div id="log"></div>
 <button id="dl" onclick="downloadLog()">↓ scarica log sessione</button>
 
+<div id="overlay">
+  <div id="ov-text"></div>
+  <div id="ov-cross" style="display:none">+</div>
+  <video id="ov-video" style="display:none"></video>
+  <div id="ov-count"></div>
+  <div id="ov-esc">ESC per annullare</div>
+</div>
+
 <script>
-const video    = document.getElementById('video')
-const startBtn = document.getElementById('start')
 const urlInput = document.getElementById('url')
 const logDiv   = document.getElementById('log')
+const overlay  = document.getElementById('overlay')
+const ovText   = document.getElementById('ov-text')
+const ovCross  = document.getElementById('ov-cross')
+const ovVideo  = document.getElementById('ov-video')
+const ovCount  = document.getElementById('ov-count')
 
-let markers    = []
-let sessionLog = []
-let timers     = []
+let sections    = []
+let sessionLog  = []
+let videoBlobs  = {}
+let running     = false
+let cancelExp   = false
+let activeTimers = []
+
+const presets = {
+  closed_eyes: { text: 'OCCHI CHIUSI', bg: '#111', color: '#eee', isCross: false, label: 'occhi_chiusi', value: 1 },
+  open_eyes:   { text: 'OCCHI APERTI', bg: '#ddd', color: '#111', isCross: false, label: 'occhi_aperti', value: 2 },
+  cross:       { text: '',             bg: '#fff', color: '#000', isCross: true,  label: 'croce',        value: 3 },
+  pause:       { text: '',             bg: '#000', color: '#fff', isCross: false, label: '',             value: '' },
+  custom:      { text: 'TESTO',        bg: '#111', color: '#eee', isCross: false, label: '',             value: '' },
+}
 
 urlInput.value   = localStorage.getItem('srv') || ''
 urlInput.oninput = () => localStorage.setItem('srv', urlInput.value)
 
-document.getElementById('mfile').onchange = e => {
-  const r = new FileReader()
-  r.onload = ev => {
-    markers = JSON.parse(ev.target.result)
-    addLog(`${markers.length} marker caricati`, 'inf')
-    checkReady()
+function uid() { return Math.random().toString(36).slice(2, 10) }
+
+function saveSections() {
+  const serializable = sections.map(s => ({ ...s, videoBlob: null }))
+  localStorage.setItem('sections', JSON.stringify(serializable))
+}
+
+function loadSections() {
+  const saved = JSON.parse(localStorage.getItem('sections') || '[]')
+  sections = saved
+  if (!sections.length) {
+    sections = [
+      makeSection('phase', { preset: 'closed_eyes', duration: 30 }),
+      makeSection('phase', { preset: 'open_eyes',   duration: 30 }),
+      makeSection('phase', { preset: 'cross',       duration: 30 }),
+      makeSection('video', {}),
+      makeSection('phase', { preset: 'closed_eyes', duration: 30, label: 'occhi_chiusi_post', value: 7 }),
+      makeSection('phase', { preset: 'open_eyes',   duration: 30, label: 'occhi_aperti_post', value: 8 }),
+    ]
   }
-  r.readAsText(e.target.files[0])
+  renderAll()
 }
 
-document.getElementById('vfile').onchange = e => {
-  video.src = URL.createObjectURL(e.target.files[0])
-  video.style.display = 'block'
-  checkReady()
+function makeSection(type, override = {}) {
+  if (type === 'phase') {
+    const preset = override.preset || 'closed_eyes'
+    const p = presets[preset]
+    return {
+      id: uid(), type: 'phase',
+      preset,
+      text: override.text ?? p.text,
+      bg: override.bg ?? p.bg,
+      color: override.color ?? p.color,
+      isCross: override.isCross ?? p.isCross,
+      duration: override.duration ?? 30,
+      label: override.label ?? p.label,
+      value: override.value ?? p.value,
+    }
+  }
+  if (type === 'video') {
+    return {
+      id: uid(), type: 'video',
+      videoName: '',
+      markers: [],
+      startLabel: 'video_start', startValue: 0,
+      endLabel:   'video_end',   endValue:   99,
+    }
+  }
 }
 
-function checkReady() {
-  startBtn.disabled = !(markers.length && video.src && urlInput.value.trim())
+function addSection(type) {
+  sections.push(makeSection(type))
+  saveSections()
+  renderAll()
+}
+
+function deleteSection(id) {
+  sections = sections.filter(s => s.id !== id)
+  delete videoBlobs[id]
+  saveSections()
+  renderAll()
+}
+
+function moveSection(id, dir) {
+  const i = sections.findIndex(s => s.id === id)
+  const j = i + dir
+  if (j < 0 || j >= sections.length) return
+  ;[sections[i], sections[j]] = [sections[j], sections[i]]
+  saveSections()
+  renderAll()
+}
+
+function updateSection(id, patch) {
+  const s = sections.find(x => x.id === id)
+  Object.assign(s, patch)
+  saveSections()
+}
+
+function applyPreset(id, preset) {
+  const s = sections.find(x => x.id === id)
+  const p = presets[preset]
+  s.preset  = preset
+  s.text    = p.text
+  s.bg      = p.bg
+  s.color   = p.color
+  s.isCross = p.isCross
+  if (!s.label) s.label = p.label
+  if (s.value === '' || s.value == null) s.value = p.value
+  saveSections()
+  renderAll()
+}
+
+function renderAll() {
+  const root = document.getElementById('sections')
+  root.innerHTML = ''
+  sections.forEach((s, idx) => root.appendChild(renderSection(s, idx)))
+}
+
+function renderSection(s, idx) {
+  const div = document.createElement('div')
+  div.className = `section ${s.type}`
+  div.innerHTML = s.type === 'phase' ? renderPhase(s, idx) : renderVideo(s, idx)
+  wireSection(div, s)
+  return div
+}
+
+function renderPhase(s, idx) {
+  const showCustom = s.preset === 'custom'
+  return `
+  <div class="section-head">
+    <span class="section-type">#${idx+1} · fase</span>
+    <div class="section-actions">
+      <button class="btn-icon" data-act="up">↑</button>
+      <button class="btn-icon" data-act="down">↓</button>
+      <button class="btn-icon btn-del" data-act="del">✕</button>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label>tipo</label>
+      <select data-field="preset">
+        <option value="closed_eyes" ${s.preset==='closed_eyes'?'selected':''}>occhi chiusi</option>
+        <option value="open_eyes"   ${s.preset==='open_eyes'?'selected':''}>occhi aperti</option>
+        <option value="cross"       ${s.preset==='cross'?'selected':''}>croce fissazione</option>
+        <option value="pause"       ${s.preset==='pause'?'selected':''}>pausa (nero)</option>
+        <option value="custom"      ${s.preset==='custom'?'selected':''}>personalizzato</option>
+      </select>
+    </div>
+    <div>
+      <label>durata (sec)</label>
+      <input type="number" data-field="duration" value="${s.duration}" min="0">
+    </div>
+    <div>
+      <label>marker label</label>
+      <input type="text" data-field="label" value="${esc(s.label)}" placeholder="(vuoto = no marker)" style="width:160px">
+    </div>
+    <div>
+      <label>marker valore</label>
+      <input type="number" data-field="value" value="${s.value}" placeholder="(vuoto)" step="any">
+    </div>
+  </div>
+  ${showCustom ? `
+  <div class="row" style="margin-top:8px">
+    <div style="flex:1;min-width:160px">
+      <label>testo</label>
+      <input type="text" data-field="text" value="${esc(s.text)}">
+    </div>
+    <div>
+      <label>sfondo</label>
+      <input type="text" data-field="bg" value="${esc(s.bg)}" style="width:90px">
+    </div>
+    <div>
+      <label>testo color</label>
+      <input type="text" data-field="color" value="${esc(s.color)}" style="width:90px">
+    </div>
+  </div>` : ''}
+  `
+}
+
+function renderVideo(s, idx) {
+  const hasVideo = !!videoBlobs[s.id]
+  return `
+  <div class="section-head">
+    <span class="section-type">#${idx+1} · video</span>
+    <div class="section-actions">
+      <button class="btn-icon" data-act="up">↑</button>
+      <button class="btn-icon" data-act="down">↓</button>
+      <button class="btn-icon btn-del" data-act="del">✕</button>
+    </div>
+  </div>
+  <label>file video ${s.videoName ? `<span style="color:#888">— ${esc(s.videoName)} ${hasVideo?'':'(da ricaricare)'}</span>` : ''}</label>
+  <input type="file" accept="video/*" data-field="videofile">
+  <video class="vid-preview" data-role="preview" controls ${hasVideo ? '' : 'style="display:none"'}></video>
+  <div class="vid-time" data-role="curtime" ${hasVideo ? '' : 'style="display:none"'}>tempo: 0.000 s</div>
+
+  <div class="row" style="margin-top:8px">
+    <div>
+      <label>marker start label</label>
+      <input type="text" data-field="startLabel" value="${esc(s.startLabel)}" style="width:140px">
+    </div>
+    <div>
+      <label>start valore</label>
+      <input type="number" data-field="startValue" value="${s.startValue}" step="any">
+    </div>
+    <div>
+      <label>marker end label</label>
+      <input type="text" data-field="endLabel" value="${esc(s.endLabel)}" style="width:140px">
+    </div>
+    <div>
+      <label>end valore</label>
+      <input type="number" data-field="endValue" value="${s.endValue}" step="any">
+    </div>
+  </div>
+
+  <label style="margin-top:10px">marker interni</label>
+  <table class="markers-tbl">
+    <thead><tr><th>label</th><th>valore</th><th>tempo (mm:ss.mmm)</th><th>offset (ms)</th><th></th></tr></thead>
+    <tbody data-role="markers-body"></tbody>
+  </table>
+  <button class="btn-add-marker" data-act="add-marker" ${hasVideo?'':'disabled'}>+ marker @ tempo corrente</button>
+  `
+}
+
+function renderMarkersRows(s) {
+  const tbody = document.querySelector(`.section[data-id="${s.id}"] [data-role="markers-body"]`)
+  if (!tbody) return
+  s.markers.sort((a, b) => (a.offset_ms || 0) - (b.offset_ms || 0))
+  tbody.innerHTML = ''
+  s.markers.forEach((m, i) => {
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <td><input type="text"   value="${esc(m.label)}"     data-mfield="label"     style="width:140px"></td>
+      <td><input type="number" value="${m.value}"          data-mfield="value"     step="any" style="width:70px"></td>
+      <td><input type="text"   value="${fmtTime(m.offset_ms)}" data-mfield="time"  style="width:110px"></td>
+      <td><input type="number" value="${m.offset_ms}"      data-mfield="offset_ms" style="width:100px"></td>
+      <td><button class="btn-icon btn-del" data-act="del-marker" data-i="${i}">✕</button></td>
+    `
+    tr.querySelectorAll('input').forEach(inp => {
+      inp.oninput = () => {
+        const f = inp.dataset.mfield
+        if (f === 'time') {
+          const ms = parseTime(inp.value)
+          if (ms != null) {
+            m.offset_ms = ms
+            tr.querySelector('[data-mfield="offset_ms"]').value = ms
+          }
+        } else if (f === 'offset_ms') {
+          m.offset_ms = parseInt(inp.value) || 0
+          tr.querySelector('[data-mfield="time"]').value = fmtTime(m.offset_ms)
+        } else if (f === 'value') {
+          m.value = parseFloat(inp.value)
+        } else {
+          m[f] = inp.value
+        }
+        saveSections()
+        if (f === 'time' || f === 'offset_ms') renderMarkersRows(s)
+      }
+    })
+    tr.querySelector('[data-act="del-marker"]').onclick = () => {
+      s.markers.splice(i, 1)
+      saveSections()
+      renderMarkersRows(s)
+    }
+    tbody.appendChild(tr)
+  })
+}
+
+function wireSection(div, s) {
+  div.dataset.id = s.id
+
+  div.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = () => {
+      const act = btn.dataset.act
+      if (act === 'up')   moveSection(s.id, -1)
+      if (act === 'down') moveSection(s.id, +1)
+      if (act === 'del')  deleteSection(s.id)
+      if (act === 'add-marker') {
+        const v = div.querySelector('[data-role="preview"]')
+        const ms = Math.round(v.currentTime * 1000)
+        s.markers.push({ label: `m${s.markers.length+1}`, value: 10 + s.markers.length, offset_ms: ms })
+        saveSections()
+        renderMarkersRows(s)
+      }
+    }
+  })
+
+  div.querySelectorAll('[data-field]').forEach(el => {
+    el.oninput = () => {
+      const f = el.dataset.field
+      if (f === 'preset') { applyPreset(s.id, el.value); return }
+      if (f === 'videofile') return
+      let val = el.value
+      if (el.type === 'number') val = val === '' ? '' : parseFloat(val)
+      updateSection(s.id, { [f]: val })
+    }
+  })
+
+  const fileInp = div.querySelector('[data-field="videofile"]')
+  if (fileInp) {
+    fileInp.onchange = e => {
+      const file = e.target.files[0]
+      if (!file) return
+      videoBlobs[s.id] = URL.createObjectURL(file)
+      updateSection(s.id, { videoName: file.name })
+      const preview = div.querySelector('[data-role="preview"]')
+      const curtime = div.querySelector('[data-role="curtime"]')
+      preview.src = videoBlobs[s.id]
+      preview.style.display = 'block'
+      curtime.style.display = 'block'
+      preview.ontimeupdate = () => curtime.textContent = `tempo: ${preview.currentTime.toFixed(3)} s`
+      div.querySelector('[data-act="add-marker"]').disabled = false
+      renderMarkersRows(s)
+    }
+  }
+
+  if (s.type === 'video') {
+    const preview = div.querySelector('[data-role="preview"]')
+    if (videoBlobs[s.id]) {
+      preview.src = videoBlobs[s.id]
+      preview.ontimeupdate = () => {
+        div.querySelector('[data-role="curtime"]').textContent = `tempo: ${preview.currentTime.toFixed(3)} s`
+      }
+    }
+    renderMarkersRows(s)
+  }
+}
+
+function esc(s) { return String(s ?? '').replace(/"/g, '&quot;').replace(/</g, '&lt;') }
+
+function fmtTime(ms) {
+  const total = Math.max(0, ms | 0)
+  const m = Math.floor(total / 60000)
+  const sec = Math.floor((total % 60000) / 1000)
+  const mil = total % 1000
+  return `${m}:${String(sec).padStart(2,'0')}.${String(mil).padStart(3,'0')}`
+}
+
+function parseTime(str) {
+  const m = String(str).trim().match(/^(\d+):(\d{1,2})(?:\.(\d{1,3}))?$/)
+  if (!m) return null
+  const mm = parseInt(m[1])
+  const ss = parseInt(m[2])
+  const ms = parseInt((m[3] || '0').padEnd(3, '0'))
+  return mm*60000 + ss*1000 + ms
 }
 
 async function sendMarker(value, label) {
-  const ts = Date.now()
-  sessionLog.push({ label, value, unix_ms: ts })
+  if (value === '' || value == null || isNaN(value)) return
+  sessionLog.push({ label, value, unix_ms: Date.now() })
   const url = urlInput.value.replace(/\/$/, '')
   try {
     await fetch(`${url}/marker`, {
@@ -84,34 +483,122 @@ async function sendMarker(value, label) {
     })
     addLog(`✓ ${label} (${value})`, 'ok')
   } catch {
-    addLog(`⚠ ${label} — WiFi fallito, salvato in locale`, 'err')
+    addLog(`⚠ ${label} — server non raggiungibile`, 'err')
   }
+}
+
+function showOverlayPhase(s) {
+  overlay.style.background = s.bg
+  overlay.style.color      = s.color
+  ovText.textContent       = s.isCross ? '' : (s.text || '')
+  ovText.style.display     = s.isCross ? 'none' : 'block'
+  ovCross.style.display    = s.isCross ? 'block' : 'none'
+  ovVideo.style.display    = 'none'
+  ovVideo.pause()
+  ovCount.textContent      = ''
+  overlay.classList.add('active')
+}
+
+function showOverlayVideo(blob) {
+  overlay.style.background = '#000'
+  ovText.style.display     = 'none'
+  ovCross.style.display    = 'none'
+  ovVideo.style.display    = 'block'
+  ovVideo.src              = blob
+  ovCount.textContent      = ''
+  overlay.classList.add('active')
+}
+
+function wait(ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms)
+    activeTimers.push(() => { clearTimeout(t); reject(new Error('cancelled')) })
+  })
+}
+
+async function runPhase(s) {
+  if (cancelExp) throw new Error('cancelled')
+  showOverlayPhase(s)
+  let rem = s.duration
+  ovCount.textContent = rem
+  const iv = setInterval(() => {
+    rem--
+    ovCount.textContent = rem > 0 ? rem : ''
+    if (rem <= 0) clearInterval(iv)
+  }, 1000)
+  activeTimers.push(() => clearInterval(iv))
+  await sendMarker(s.value, s.label || 'phase')
+  await wait(s.duration * 1000)
+}
+
+async function runVideoSection(s) {
+  if (cancelExp) throw new Error('cancelled')
+  const blob = videoBlobs[s.id]
+  if (!blob) { addLog(`video sezione mancante: ${s.videoName || s.id}`, 'err'); return }
+
+  showOverlayVideo(blob)
+  ovVideo.currentTime = 0
+
+  await new Promise(r => {
+    if (ovVideo.readyState >= 1) r()
+    else ovVideo.onloadedmetadata = r
+  })
+
+  await sendMarker(s.startValue, s.startLabel)
+  ovVideo.play()
+
+  const timers = s.markers.map(m =>
+    setTimeout(() => sendMarker(m.value, m.label), m.offset_ms)
+  )
+  activeTimers.push(() => timers.forEach(clearTimeout))
+
+  await new Promise((resolve, reject) => {
+    ovVideo.onended = resolve
+    activeTimers.push(() => { ovVideo.pause(); reject(new Error('cancelled')) })
+  })
+
+  timers.forEach(clearTimeout)
+  await sendMarker(s.endValue, s.endLabel)
 }
 
 async function run() {
-  timers.forEach(clearTimeout)
-  timers     = []
+  if (running) return
+  if (!urlInput.value.trim()) { addLog('inserisci IP server', 'err'); return }
+  if (!sections.length)        { addLog('nessuna sezione configurata', 'err'); return }
+
+  running = true
+  cancelExp = false
   sessionLog = []
   logDiv.innerHTML = ''
-  startBtn.disabled = true
+  document.getElementById('start').disabled = true
   document.getElementById('dl').style.display = 'none'
 
-  await sendMarker(0, 'video_start')
-
-  video.currentTime = 0
-  video.play()
-
-  for (const m of markers) {
-    const t = setTimeout(() => sendMarker(m.value, m.label), m.offset_ms)
-    timers.push(t)
-  }
-
-  video.onended = async () => {
-    await sendMarker(99, 'video_end')
-    document.getElementById('dl').style.display = 'inline-block'
-    startBtn.disabled = false
+  try {
+    for (const s of sections) {
+      if (cancelExp) break
+      if (s.type === 'phase' && s.duration > 0) await runPhase(s)
+      else if (s.type === 'video')              await runVideoSection(s)
+    }
+    if (!cancelExp) addLog('esperimento completato', 'inf')
+  } catch (e) {
+    addLog(`interrotto: ${e.message}`, 'err')
+  } finally {
+    overlay.classList.remove('active')
+    ovVideo.pause()
+    ovVideo.src = ''
+    running = false
+    activeTimers = []
+    document.getElementById('start').disabled = false
+    document.getElementById('dl').style.display = sessionLog.length ? 'inline-block' : 'none'
   }
 }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && running) {
+    cancelExp = true
+    activeTimers.forEach(fn => { try { fn() } catch {} })
+  }
+})
 
 function addLog(msg, cls = '') {
   const d = document.createElement('div')
@@ -128,6 +615,8 @@ function downloadLog() {
   a.download = `session_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`
   a.click()
 }
+
+loadSections()
 </script>
 </body>
 </html>

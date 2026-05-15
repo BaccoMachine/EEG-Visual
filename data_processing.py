@@ -5,7 +5,8 @@ from scipy.signal import welch, spectrogram
 import numpy as np
 
 
-def csv2exps(datadir): #get all csvs in a data directory, return a dictionary of experiments and a list of all them
+def csv2exps(datadir): 
+    """get all csvs from a "data" directory, return a dictionary of experiments and a list of all of them"""
     #datadir = Path('data')
     allf = {}
     exps = {} 
@@ -43,7 +44,8 @@ def csv2exps(datadir): #get all csvs in a data directory, return a dictionary of
     #sgms = [exp1, exp2, ...]
 
 
-def sampling_frequency(df): #get sampling freq. Reminder: timestamp depends on file write time, not actual device sampling rate
+def sampling_frequency(df): 
+    """get sampling freq. Reminder: timestamps depend on file-writing time, not on the actual device sampling rate"""
     time_diffs = df['Timestamp'].diff().dropna()
     time_diffs = time_diffs[time_diffs > 0]  
     if not time_diffs.empty:
@@ -65,6 +67,14 @@ def estrai_tempi_marker(exexp, fs_hardware):
             last_val = 0
             
     return marker_times
+def get_spect(seg: pd.DataFrame, fs_hardware=125.0) -> tuple:
+    """get a spectrogram of a segment for every channel, return freqs, times, and psd_db for each channel"""
+    samp_w = int(fs_hardware * 2)
+    ol = int(samp_w * 0.90)
+    chns = [f'EXG Channel {i}' for i in range(16)] #cyton+Daisy standard has 16 channels \
+
+
+
 
 def export_spettrogrammi_completi(sgms, outdir, fs_hardware=125.0):
     samp_w = int(fs_hardware * 2) 
