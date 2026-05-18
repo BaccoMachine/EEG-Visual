@@ -1,36 +1,30 @@
 # OpenBCI Scripts
 
-Using Cyton + Daisy on a Ultracortex
+Cyton + Daisy on a Ultracortex, 16ch @ 125 Hz.
 
-This software is horribly vibe coded with minimal corrections, further development will improve it.
+Vibe coded, work in progress.
 
-## Quick Start
-
-not all packages are needed by all scripts 
+## Setup
 
 ```
 python3 -m venv env
 source env/bin/activate
+pip install mne numpy matplotlib opencv-python brainflow scipy pandas
 ```
 
-```
-pip install mne numpy matplotlib opencv-python 
-pip install brainflow textual pyedflib numpy 
-pip install fastapi uvicorn pypdf python-multipart
-```
+Not every script needs everything.
 
-## EEG Analysis (`data_processing.py`)
+## What's here
 
-Processes raw BrainFlow CSVs from Cyton+Daisy (16ch, 125 Hz).
+- `data_processing.py` — splits BrainFlow CSVs by Marker Channel and makes per-experiment plots (16ch detail, average, Welch by section). Put the CSVs in `data/`, run it, output goes in `output/`.
+- `analysis.py` — overlay plots across participants. Reads the same data through `data_processing.py` functions. Notes in `analysis_notes.md`.
+- `record/`, `visualize/` — older scripts, kept for reference.
+- `rename_openbci_files_.py` — renames raw files to something usable.
+- `archive/web/` — old browser-based experiment pipeline (marker definer + sync server). Not in use right now.
 
-Splits recordings into experiments using the Marker Channel, then generates three plots per experiment:
-
-- **16ch detail** — spectrogram for each channel (1–40 Hz), with band labels and marker lines
-- **avg** — same but averaged across all 16 channels
-- **welch** — Welch PSD split by marker section, all on one plot
-
-Output goes to `output/`. Put BrainFlow CSVs in `data/` and run:
+## Run
 
 ```bash
 python3 data_processing.py
+python3 analysis.py
 ```
