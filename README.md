@@ -16,15 +16,18 @@ Not every script needs everything.
 
 ## What's here
 
-- `data_processing.py` — splits BrainFlow CSVs by Marker Channel and makes per-experiment plots (16ch detail, average, Welch by section). Put the CSVs in `data/`, run it, output goes in `output/`.
-- `analysis.py` — overlay plots across participants. Reads the same data through `data_processing.py` functions. Notes in `analysis_notes.md`.
+- `data_processing.py` — library: CSV loading, marker handling, per-experiment plots (16ch detail, avg, Welch by section) and cross-participant overlays. Config + participants list on top.
+- `analysis.py` — runner. Imports from `data_processing.py` and generates everything. Notes in `analysis_notes.md`.
 - `record/`, `visualize/` — older scripts, kept for reference.
 - `rename_openbci_files_.py` — renames raw files to something usable.
 - `archive/web/` — old browser-based experiment pipeline (marker definer + sync server). Not in use right now.
 
 ## Run
 
+Put BrainFlow CSVs in `data/`, then:
+
 ```bash
-python3 data_processing.py
 python3 analysis.py
 ```
+
+Output goes in `output/`.
