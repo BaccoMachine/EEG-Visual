@@ -5,5 +5,7 @@ __pycache__/
 *.pyc
 data/
 output/
+output_grafici/
+prova0/
 prove esperimento 3-4/
 prove esperimento 5-6/
